@@ -1,77 +1,70 @@
-import javax.swing.*;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.Timer;
 
 public class MemoryGame {
-
-    private CardButton first = null;
-    private CardButton second = null;
-    private boolean locking = false;
-
+    private CardButton firstCard = null;
+    private CardButton secondCard = null;
     private int moves = 0;
-    private final JLabel lblMoves;
-
-    public MemoryGame(JLabel lblMoves) {
-        this.lblMoves = lblMoves;
+    private int pairsFound = 0;
+    private final JLabel movesLabel;
+    private final MemoryGameForm form;
+    private int totalPairs;
+    
+public MemoryGame(JLabel movesLabel, MemoryGameForm form) { 
+    this.movesLabel = movesLabel;
+    this.form = form; 
 }
     public void attachEvents(MemoryBoard board) {
-    for (CardButton btn : board.getButtons()) {
-        btn.addActionListener(e -> {
-            if (locking) return;
-            if (btn.getCard().isFlipped() || btn.getCard().isMatched()) return;
+        this.totalPairs = board.getButtons().length / 2;
+        for (CardButton button : board.getButtons()) {
+            button.addActionListener(e -> handleCardClick(button));
+        }
+    }
 
-            btn.getCard().flip();
-            btn.updateDisplay();
+    private void handleCardClick(CardButton clickedCard) {
+        if (clickedCard.getCard().isMatched() || clickedCard.getCard().isFlipped()) {
+            return;
+        }
 
+        if (firstCard == null) {
+            firstCard = clickedCard;
+            firstCard.getCard().flip();
+            firstCard.updateDisplay();
+        } else if (secondCard == null) {
+            secondCard = clickedCard;
+            secondCard.getCard().flip();
+            secondCard.updateDisplay();
+            
             moves++;
-            lblMoves.setText("Moves: " + moves);
+            movesLabel.setText("Moves: " + moves);
 
-            if (first == null) {
-                first = btn;
-            } else {
-                second = btn;
-                checkMatch();
+            Timer timer = new Timer(1000, e -> compareCards());
+            timer.setRepeats(false);
+            timer.start();
+        }
+    }
+
+    private void compareCards() {
+        if (firstCard.getCard().getSymbol().equals(secondCard.getCard().getSymbol())) {
+            firstCard.getCard().setMatched(true);
+            secondCard.getCard().setMatched(true);
+            firstCard.setEnabled(false);
+            secondCard.setEnabled(false);
+            pairsFound++;
+            
+            if (pairsFound == totalPairs) {
+                form.stopTimer(); 
+                JOptionPane.showMessageDialog(form, "You won in " + moves + " moves!");
             }
-        });
-    }
-}
-
-    private void checkMatch() {
-        if (first.getCard().getSymbol()
-            .equals(second.getCard().getSymbol())) {
-
-            first.getCard().setMatched(true);
-            second.getCard().setMatched(true);
-            first.updateDisplay();
-            second.updateDisplay();
-
-            first = null;
-            second = null;
-
         } else {
-            locking = true;
-
-            Timer t = new Timer(700, e -> {
-                first.getCard().flip();
-                second.getCard().flip();
-                first.updateDisplay();
-                second.updateDisplay();
-
-                first = null;
-                second = null;
-                locking = false;
-            });
-
-            t.setRepeats(false);
-            t.start();
-        }
-    }
-
-    private static class labelMoves {
-
-        private static void setText(String string) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+            firstCard.getCard().flip();
+            secondCard.getCard().flip();
+            firstCard.updateDisplay();
+            secondCard.updateDisplay();
         }
 
-        public labelMoves() {
-        }
+        firstCard = null;
+        secondCard = null;
     }
 }
